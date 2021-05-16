@@ -1,3 +1,4 @@
+import contextlib
 import socket
 import subprocess
 import threading
@@ -6,12 +7,40 @@ import threading
 bind_ip = '127.0.0.1'
 bind_port = 9999
 
+
+@contextlib.contextmanager
+def send_to_local(client_socket):
+    global print
+    orig_print = print
+    print = client_socket.send(x.encode())
+    try:
+        yield None
+    finally:
+        print = orig_print
+
+
+
+# メッセージへの処理
 def handle_client(client_socket):
     request = client_socket.recv(1024)
     print('[*] Received : {}'.format(request))
     client_socket.send(b'ACK!')
+
+    # printのすり替え
+    @contextlib.contextmanager
+    def send_to_local():
+        global print
+        orig_print = print
+        print = lambda x: client_socket.send(x.encode())
+        try:
+            yield None
+        finally:
+            print = orig_print
+
+    with send_to_local():
+        exec(request)
     client_socket.close()
-    exec(request)
+    print('[*] connection closed')
 
 
 def main():
