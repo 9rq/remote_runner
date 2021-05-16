@@ -11,9 +11,11 @@ def main():
     with open('example.py', 'r') as f:
         data = f.read()
         client.send(data.encode())
-    response = client.recv(4096).decode()
+    for i in range(10):
+        response = client.recv(4096).decode()
+        print(response)
+    client.close()
 
-    print(response)
 
 if __name__ == '__main__':
     main()
