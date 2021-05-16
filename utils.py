@@ -1,31 +1,26 @@
+import io
 import contextlib
 import sys
 import socket
 
 
-# change output stream of print func
-def alternative_print(output_stream):
-    def alt_print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False):
-        print(objects,sep=sep, end=end,file=output_stream, flush=True)
-    return alt_print
+# implement write function coz print calls IO.write
+class SocketIO:
+    def __init__(self,sock):
+        self.sock = sock
+
+    def write(self,msg):
+        self.sock.send(msg.encode())
 
 
-# substitute print func inside context manager
+# substitute stdio inside context-manager
 @contextlib.contextmanager
-def substitute_print(alt_print):
-    global print
-    orig_print = print
-    print = alt_print
+def substitute_stdio(alt_io):
+    sys.stdout = alt_io
     try:
-        yield None
+        yield
     finally:
-        print = orig_print
-
-# add write method to socket obj
-class MySocket(socket.socket):
-    def write(self, msg):
-        self.send(msg)
-
+        sys.stdout = sys.__stdout__
 
 
 def main():
