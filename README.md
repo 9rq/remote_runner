@@ -25,5 +25,23 @@
     置き換えが正しくできなくなる？
     書き切ったが正しく動作できない。
 
+4. stdoutの上書き
+    server:
+    #3から変更を加え、sys.stdoutを書き換えるアプローチを採用。
+    printではio.writeが呼ばれるため、writeを持つソケットを作成した。
+    動作の確認はできたものの、空行が入ってしまうことがある。
+    上手く行くこともあり、おそらくclient側の問題？
+    client側で改行しないように設定することで問題を解決
+
+5. RemoteFinderその1
+    server:
+    ファイル実体のないstrをimportする機能の実装
+    impが古くなっていたのでimportlibを採用
+    ファイルをローカルから持ってくる機能は未実装
+
+    Reference:
+    https://pod.hatenablog.com/entry/2019/07/25/005334
+
+
 ### Issue
 1. ファイルの読み込みがremote基準になる？

