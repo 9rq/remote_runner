@@ -42,6 +42,31 @@
     Reference:
     https://pod.hatenablog.com/entry/2019/07/25/005334
 
+6. RemoteImporterの分離
+    server:
+    RemoteImporterをRemoterFinder + StringLoaderに分割
+
+    Reference:
+    https://qiita.com/yasuo-ozu/items/7e4ae538e11dd2d589a8
 
 ### Issue
 1. ファイルの読み込みがremote基準になる？
+
+
+### Others
+PythonのImportシステム
+importの処理は、検索と読み込みの2つに分離できる。
+#### 手順
+1. まずは`sys.modules`からキャッシュを確認し、読み込み済みかを確認する。
+2. インポートプロトコルの起動。
+3. Finderによる検索
+4. `sys.meta_path`のfinderにアクセスしfind\_specする。
+
+
+
+Importer = Finder + Loader
+importerはモジュールがロードできることがわかると自分自身を返す。
+ファインダーはモジュールのインポート関連の情報をカプセル化したもの(module spec)を返します
+インポートフック(メタフック`sys.meta_path`、インポートパスフック`sys.path_hook`)
+デフォルトのFinderは`sys.meta_path`に含まれる3つ
+

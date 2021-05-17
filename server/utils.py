@@ -1,6 +1,7 @@
 import contextlib
 import importlib
 import io
+import os
 import socket
 import sys
 
@@ -24,28 +25,30 @@ def substitute_stdio(alt_io):
         sys.stdout = sys.__stdout__
 
 
-class RemoteImporter:
-    def __init__(self):
-        self.current_module_code = ''
-
-    def find_spec(self, fullname, path, target=None):
-        print('[*] Attempting to retrive {}'.format(fullname))
-        self.fullname = fullname
-        new_library ='def hello():print("hello world!)'
-
-        if new_library is not None:
-            self.current_module_code = new_library
-            return importlib.machinery.ModuleSpec(fullname, self)
-        return None
+# load module from code:str
+class StringLoader:
+    def __init__(self, code):
+        self.code = code
 
     def create_module(self, spec):
         return None
 
     def exec_module(self, module, package=None):
-        try:
-            exec(self.current_module_code, module.__dict__)
-        except Exception as e:
-            raise ImportError('cannot import name {}'.format(self.fullname))
+        code_object = compile(self.code, '<string>', 'exec', dont_inherit=True)
+        exec(code_object, module.__dict__)
+
+class RemoteFinder:
+    def __init__(self):
+        self.current_module_code = ''
+
+    def find_spec(self, fullname, path, target=None):
+        print('[*] Attempting to retrive {}'.format(fullname))
+        new_library ='def hello():print("hello world!")'
+
+        if new_library is not None:
+            self.current_module_code = new_library
+            return importlib.machinery.ModuleSpec(fullname, StringLoader(self.current_module_code))
+        return None
 
 
 def main():

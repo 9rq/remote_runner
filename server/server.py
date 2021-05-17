@@ -13,7 +13,7 @@ bind_port = 9999
 def handle_client(client_socket):
     request = client_socket.recv(1024)
     print('[*] Received : {}'.format(request))
-    client_socket.send(b'ACK!')
+    client_socket.send(b'ACK!\n')
 
     with substitute_stdio(SocketIO(client_socket)):
         try:
@@ -23,10 +23,11 @@ def handle_client(client_socket):
             print(e, file=sys.__stdout__)
     client_socket.close()
     print('[*] connection closed')
+    print()
 
 
 def main():
-    sys.meta_path.append(RemoteImporter())
+    sys.meta_path.append(RemoteFinder())
 
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind((bind_ip, bind_port))
