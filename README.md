@@ -4,7 +4,16 @@
 リモートのマシンでローカルにあるpythonファイルを実行したい
 
 ### Approach
-
+remote                      | local
+                            |
+importで見つからない        |
+localへリクエスト           |
+                            | リクエストの受理
+                            | importの実行
+                            | finderで実体ファイルを探す
+                            | specとsourceを転送
+specとsourceの受け取り      |
+loaderの実行                |
 
 ### Log
 1. clientとserverの作成
@@ -49,8 +58,32 @@
     Reference:
     https://qiita.com/yasuo-ozu/items/7e4ae538e11dd2d589a8
 
+7. socket通信の強化
+    それぞれMySocketに機能を実装
+    receive:
+    ストリーム通信であるため、送信データの区切りを示す必要あり。
+    - 固定長を送る
+    - 区切り文字を設定
+    - メッセージ長をヘッダーとして追加
+    公式リファレンスには上記の手段が挙げられている。
+    今回は区切り文字としてcrlf(\\r\\n)を採用
+    send:
+    sendを実行したからといって全てが送信されているとは限らない。
+    戻り値を確認して残りを送信する。
+    最後にcrlfをつけるのを忘れないように。
+
+    Reference:
+    [ソケットプログラミング HOWTO](https://docs.python.org/ja/3/howto/sockets.html#using-a-socket)
+
+8. RemoteFinderその2
+    RemoteFinderを`sys.meta_path`に追加。
+    importに失敗した時にRemoteFinder.find_specを実行し、importリクエストを送信する。
+    受け取りの実装は先送り。
+
+
 ### Issue
 1. ファイルの読み込みがremote基準になる？
+2. from ... import ...　に対応しない？
 
 
 ### Others
@@ -69,4 +102,3 @@ importerはモジュールがロードできることがわかると自分自身
 ファインダーはモジュールのインポート関連の情報をカプセル化したもの(module spec)を返します
 インポートフック(メタフック`sys.meta_path`、インポートパスフック`sys.path_hook`)
 デフォルトのFinderは`sys.meta_path`に含まれる3つ
-
