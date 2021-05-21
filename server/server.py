@@ -13,7 +13,7 @@ bind_port = 9999
 def handle_client(client_socket):
     client_socket = MySocket(sock=client_socket)
     try:
-        request = client_socket.recv(4096)[0]
+        request = client_socket.recv(4096)
         print('[*s] Received : {}'.format(request))
 
         with substitute_stdio(SocketIO(client_socket)):
@@ -21,14 +21,13 @@ def handle_client(client_socket):
             try:
                 with substitute_finders(sys.meta_path + [RemoteFinder(client_socket)]):
                     exec(request)
+                print('[*s] Done')
             except Exception as e:
-                print('[!s] Error occured', file=sys.__stdout__)
+                print('[!s] Error occured whlie executing remote code', file=sys.__stdout__)
                 print(e, file=sys.__stdout__)
-        print('[*s] Done')
     finally:
         client_socket.close()
         print('[*s] connection closed')
-        print()
 
 
 def main():

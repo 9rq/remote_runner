@@ -1,3 +1,4 @@
+import copy
 import contextlib
 import importlib
 import io
@@ -11,6 +12,7 @@ import time
 class MySocket:
     def __init__(self, sock=None):
         self.sock = sock or socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.buff = b''
 
     def connect(self, target):
         self.sock.connect(target)
@@ -22,23 +24,20 @@ class MySocket:
         while totalsent < len(msg):
             sent = self.sock.send(msg[totalsent:])
             if sent == 0:
-                raise RuntimeError('[!] socket connection broken')
+                raise RuntimeError('[!s] socket connection broken')
             totalsent += sent
 
     def recv(self, buff_size, sep:str='\r\n'):
-        buff = b''
-        recv_len = 1
-        while recv_len:
-            data = self.sock.recv(buff_size)
-            recv_len = len(data)
-            buff += data
-            if recv_len < buff_size:
+        while 1:
+            buff_split = self.buff.split(sep=sep.encode(), maxsplit=1)
+            if len(buff_split) == 2:
                 break
-        if len(buff) == 0:
-            return None
-        msgs = buff.rstrip(sep.encode()).split(sep.encode())
-        msgs = [pickle.loads(msg) for msg in msgs]
-        return msgs
+            data = self.sock.recv(buff_size)
+            if not data:
+                raise RuntimeError('[!s] socket connection broken')
+            self.buff += data
+        msg, self.buff = buff_split
+        return pickle.loads(msg)
 
     def close(self):
         self.sock.close()
@@ -50,7 +49,7 @@ class SocketIO:
         self.sock = sock
 
     def write(self,msg):
-        self.sock.send(msg)
+        self.sock.send(('print', msg))
 
 
 # substitute stdio inside context-manager
@@ -66,10 +65,14 @@ def substitute_stdio(alt_io):
 def substitute_finders(alt_finders):
     orig_finders = sys.meta_path
     sys.meta_path = alt_finders
+
+    #orig_modules = sys.modules
+    #sys.modules = copy.deepcopy(sys.modules)
     try:
         yield
     finally:
         sys.meta_path = orig_finders
+        #sys.modules = orig_modules
 
 
 # load module from code:str
@@ -81,7 +84,6 @@ class StringLoader:
         return None
 
     def exec_module(self, module, package=None):
-        print(module)
         code_object = compile(self.code, '<string>', 'exec', dont_inherit=True)
         exec(code_object, module.__dict__)
 
@@ -98,7 +100,17 @@ class RemoteFinder:
         msg = ('import', args)
         self.sock.send(msg)
         # expand here
-        return None
+        print('[*s] Waiting for info...')
+        msg = self.sock.recv(4096)
+        if msg is None:
+            return None
+        request, args = msg
+        if request == 'spec_and_source':
+            print('[*s] Recieved spec and source')
+            spec = args['spec']
+            source = args['source']
+            spec.loader = StringLoader(source)
+        return spec
 
 class MyPathFinder:
     @classmethod
