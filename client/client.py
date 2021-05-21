@@ -2,6 +2,7 @@ import json
 import pickle
 import socket
 from utils import *
+import pdb
 
 
 target_host = socket.gethostname()
@@ -9,18 +10,32 @@ target_port = 9999
 
 
 def handle_message(msg):
-    if type(msg) == str:
-        print(msg, end='')
-    elif type(msg) == tuple:
+    if type(msg) == tuple:
         request, args = msg
-        print(request)
-        print(args)
+        if request == 'print':
+            print(args,end='')
+        elif request == 'import':
+            args = find_spec_and_source(**args)
+            return ('spec_and_source', args)
+        else:
+            print(request, args)
+
     else:
         print('others', msg, end='')
 
 
+def find_spec_and_source(fullname=None, path=None, target=None):
+    source = None
+    spec = MyPathFinder.find_spec(fullname, path, target)
+    try:
+        with open(spec.origin,'r') as f:
+            source = f.read()
+    finally:
+        return {'spec':spec, 'source':source}
+
 def main():
     client = MySocket()
+
     try:
         client.connect((target_host, target_port))
         with open('example2.py', 'r') as f:
@@ -28,11 +43,12 @@ def main():
             client.send(data)
         while 1:
             try:
-                msgs = client.recv(4096)
-                if not msgs:
+                msg = client.recv(4096)
+                if not msg:
                     break
-                for msg in msgs:
-                    handle_message(msg)
+                reply = handle_message(msg)
+                if reply is not None:
+                    client.send(reply)
             except Exception as e:
                 print(e)
                 break
