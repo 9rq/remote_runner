@@ -80,10 +80,20 @@ loaderの実行                |
     importに失敗した時にRemoteFinder.find_specを実行し、importリクエストを送信する。
     受け取りの実装は先送り。
 
+9. importリクエストへの対応
+    client:
+    importリクエストを受け取り、find_specを実行する。
+    module.originからsourceファイルを特定し、sourceとspecをserverへ転送する。
+    server:
+    受け取ったsourceを元にloaderを作成、上書きする。
+    実行はpythonに任せる。
+
+
 
 ### Issue
 1. ファイルの読み込みがremote基準になる？
 2. from ... import ...　に対応しない？
+3. 区切り文字がソケット通信の中身に入っていると区切られてしまう。
 
 
 ### Others

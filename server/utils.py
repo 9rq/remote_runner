@@ -1,4 +1,3 @@
-import copy
 import contextlib
 import importlib
 import io
@@ -6,7 +5,6 @@ import os
 import pickle
 import socket
 import sys
-import time
 
 
 class MySocket:
@@ -66,17 +64,16 @@ def substitute_finders(alt_finders):
     orig_finders = sys.meta_path
     sys.meta_path = alt_finders
 
-    #orig_modules = sys.modules
-    #sys.modules = copy.deepcopy(sys.modules)
     try:
         yield
     finally:
         sys.meta_path = orig_finders
-        #sys.modules = orig_modules
 
 
-# load module from code:str
 class StringLoader:
+    '''
+    Load module from code:str
+    '''
     def __init__(self, code):
         self.code = code
 
@@ -90,17 +87,21 @@ class StringLoader:
     def module_from_spec(self, spec):
         print('module_from_spec called')
 
+
 class RemoteFinder:
+    '''
+    Original finder.
+    Try to find modules from remote client.
+    To apply, you need to add this finder to sys.meta_path(not replace all)
+    '''
     def __init__(self, sock):
         self.sock = sock
 
     def find_spec(self, fullname, path, target=None):
-        print('[*s] Attempting to retrive {}'.format(fullname))
+        print('[*s] Attempting to retrive {}'.format(fullname),file=sys.__stdout__)
         args = {'fullname':fullname, 'path':path, 'target':target}
         msg = ('import', args)
         self.sock.send(msg)
-        # expand here
-        print('[*s] Waiting for info...')
         msg = self.sock.recv(4096)
         if msg is None:
             return None
@@ -112,65 +113,22 @@ class RemoteFinder:
             spec.loader = StringLoader(source)
         return spec
 
-class MyPathFinder:
+
+class MyFinder:
     @classmethod
-    def path_hooks(cls, path):
-        for hook in sys.path_hooks:
-            try:
-                return hook(path)
-            except ImportError:
-                continue
-        else:
+    def find_spec(cls, fullname, path, target=None):
+        print('[*] Finding {}'.format(fullname))
+        spec = importlib.machinery.PathFinder.find_spec(fullname, path, target)
+        if spec is None:
             return None
-
-    @classmethod
-    def path_importer_cache(cls, path):
-        if path == '':
-            path = os.getcwd()
-
+        print('[*] Found spec',spec)
         try:
-            finder = sys.path_importer_cache[path]
-        except KeyError:
-            finder = cls.path_hooks(path)
-
-        return finder
-
-    @classmethod
-    def get_spec(cls, fullname, path, target=None):
-        namespace_path = []
-
-        for entry in path:
-            if not isinstance(entry, (str, bytes)):
-                continue
-            finder = cls.path_importer_cache(entry)
-            if finder is not None:
-                spec = finder.find_spec(fullname, target)
-                if spec is None:
-                    continue
-                if spec.loader is not None:
-                    return spec
-                portions = spec.submodule_search_locations
-                if portions is None:
-                    raise ImportError('spec missing loader')
-                # This is possibly part of a namespace package.
-                #  Remember these path entries (if any) for when we
-                #  create a namespace package, and continue iterating
-                #  on path.
-                namespace_path.extend(portions)
-        else:
-            spec = importlib.machinery.ModuleSpec(fullname, None)
-            spec.submodule_search_locations = namespace_path
-            return spec
-
-    @classmethod
-    def find_spec(cls, fullname, path=None, target=None):
-        if path is None:
-            path = sys.path
-        spec = cls.get_spec(fullname, path, target)
-        if spec.loader is None:
-            return None
+            with open(spec.origin,'r')as f:
+                source = f.read()
+        except Exception as e:
+            print(e)
+        spec.loader = StringLoader(source)
         return spec
-
 
 
 def main():

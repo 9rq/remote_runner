@@ -1,6 +1,7 @@
 import json
 import pickle
 import socket
+import importlib
 from utils import *
 import pdb
 
@@ -17,6 +18,8 @@ def handle_message(msg):
         elif request == 'import':
             args = find_spec_and_source(**args)
             return ('spec_and_source', args)
+        elif request == 'exit':
+            exit(0)
         else:
             print(request, args)
 
@@ -26,7 +29,7 @@ def handle_message(msg):
 
 def find_spec_and_source(fullname=None, path=None, target=None):
     source = None
-    spec = MyPathFinder.find_spec(fullname, path, target)
+    spec = importlib.machinery.PathFinder().find_spec(fullname, path, target)
     try:
         with open(spec.origin,'r') as f:
             source = f.read()
