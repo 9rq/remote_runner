@@ -1,10 +1,12 @@
 # Remote runner
 
-### Motivation
+## Motivation
 リモートのマシンでローカルにあるpythonファイルを実行したい。<br>
 標準ライブラリのみを利用して、Pure Pythonな実装。
 
-### Approach
+****
+
+## Approach
 |remote                      | local                        |
 |----------------------------|------------------------------|
 |importで見つからない        |                              |
@@ -16,7 +18,9 @@
 |specとsourceの受け取り      |                              |
 |loaderの実行                |                              |
 
-### Log
+****
+
+## Log
 1. clientとserverの作成
     client:
     実行するpythonファイルをserverへソケット通信で送信
@@ -89,21 +93,22 @@
     受け取ったsourceを元にloaderを作成、上書きする。
     実行はpythonに任せる。
 
+****
 
-
-### Issue
+## Issue
 1. ファイルの読み込みがremote基準になる
-2.  ~~`from ... import ...`に対応しない？~~ 
+2.  ~~`from ... import ...`に対応しない？~~
 3. 区切り文字がソケット通信の中身に入っていると区切られてしまう。
 4. `*.so`ファイルが読み込めない
 
+****
 
-### Others
-#### PythonのImportシステム
+## Others
+### PythonのImportシステム
 import を実行すると、`__import__`が呼ばれる。
 主要箇所は`_find_and_load_unlocked`
 [cpython/Lib/importlib/\_bootstrap.py](https://github.com/python/cpython/blob/79d1c2e6c9d1bc1cf41ec3041801ca1a2b9a995b/Lib/importlib/_bootstrap.py)
-##### 流れ
+#### 流れ
 大雑把に要約すると以下のような処理を行う。
 
 1. 親モジュールを確認し、必要に応じて再帰的に読み込む
@@ -111,3 +116,11 @@ import を実行すると、`__import__`が呼ばれる。
 3. specに付属したLoaderを元に`create_module`により、moduleを生成した後に`exec_module`を実行し、moduleを読み込む
 
 import機構を書き換えたい場合、FinderとLoaderを作成した上で、`sys.meta_path`に追加(or 上書き)するのが楽。
+
+### socket通信
+ソケット通信はストリーム通信であるため、データの切れ目が定義されていない。
+対話的に通信を行うためには、データの区切り方を決める必要がある。
+固定長のメッセージにする、区切り文字を指定する、メッセージ長を先行して送信する、といった方法が存在する。
+pythonの公式ドキュメントでは、3つ目が推奨されていた。
+今回は実装が楽であるため区切り文字を指定している。
+しかしながら、メッセージ内に区切り文字が存在してしまうと正しくメッセージが解釈できなくなるのでよくないかもしれない。
