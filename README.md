@@ -1,7 +1,8 @@
 # Remote runner
 
 ### Motivation
-リモートのマシンでローカルにあるpythonファイルを実行したい
+リモートのマシンでローカルにあるpythonファイルを実行したい。<br>
+標準ライブラリのみを利用して、Pure Pythonな実装。
 
 ### Approach
 |remote                      | local                        |
@@ -92,7 +93,7 @@
 
 ### Issue
 1. ファイルの読み込みがremote基準になる
-2. `from ... import ...`に対応しない？
+2.  ~~`from ... import ...`に対応しない？~~ 
 3. 区切り文字がソケット通信の中身に入っていると区切られてしまう。
 4. `*.so`ファイルが読み込めない
 
