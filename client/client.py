@@ -1,12 +1,12 @@
+import argparse
 import json
 import pickle
 import socket
 import importlib
 from utils import *
-import pdb
 
 
-target_host = socket.gethostname()
+target_host = socket.gethostbyname(socket.gethostname())
 target_port = 9999
 
 
@@ -37,11 +37,20 @@ def find_spec_and_source(fullname=None, path=None, target=None):
         return {'spec':spec, 'source':source}
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('source', help='python file which you want to run remotely')
+    parser.add_argument('target', help='target address')
+    parser.add_argument('port', type=int, help='target port')
+    args = parser.parse_args()
+    source = args.source
+    target_host = args.target
+    target_port = args.port
+
     client = MySocket()
 
     try:
         client.connect((target_host, target_port))
-        with open('example2.py', 'r') as f:
+        with open(source, 'r') as f:
             data = f.read()
             client.send(data)
         while 1:
@@ -55,7 +64,8 @@ def main():
             except Exception as e:
                 print(e)
                 break
-    except:
+    except Exception as e:
+        print(e)
         print('[!c] Exception! Exiting...')
     finally:
         client.close()
