@@ -4,16 +4,16 @@
 リモートのマシンでローカルにあるpythonファイルを実行したい
 
 ### Approach
-remote                      | local
-                            |
-importで見つからない        |
-localへリクエスト           |
-                            | リクエストの受理
-                            | importの実行
-                            | finderで実体ファイルを探す
-                            | specとsourceを転送
-specとsourceの受け取り      |
-loaderの実行                |
+|remote                      | local                        |
+|----------------------------|------------------------------|
+|importで見つからない        |                              |
+|localへリクエスト           |                              |
+|                            | リクエストの受理             |
+|                            | importの実行                 |
+|                            | finderで実体ファイルを探す   |
+|                            | specとsourceを転送           |
+|specとsourceの受け取り      |                              |
+|loaderの実行                |                              |
 
 ### Log
 1. clientとserverの作成
@@ -91,24 +91,22 @@ loaderの実行                |
 
 
 ### Issue
-1. ファイルの読み込みがremote基準になる？
-2. from ... import ...　に対応しない？
+1. ファイルの読み込みがremote基準になる
+2. `from ... import ...`に対応しない？
 3. 区切り文字がソケット通信の中身に入っていると区切られてしまう。
+4. `*.so`ファイルが読み込めない
 
 
 ### Others
-PythonのImportシステム
-importの処理は、検索と読み込みの2つに分離できる。
-#### 手順
-1. まずは`sys.modules`からキャッシュを確認し、読み込み済みかを確認する。
-2. インポートプロトコルの起動。
-3. Finderによる検索
-4. `sys.meta_path`のfinderにアクセスしfind\_specする。
+#### PythonのImportシステム
+import を実行すると、`__import__`が呼ばれる。
+主要箇所は`_find_and_load_unlocked`
+[cpython/Lib/importlib/\_bootstrap.py](https://github.com/python/cpython/blob/79d1c2e6c9d1bc1cf41ec3041801ca1a2b9a995b/Lib/importlib/_bootstrap.py)
+##### 流れ
+大雑把に要約すると以下のような処理を行う。
 
+1. 親モジュールを確認し、必要に応じて再帰的に読み込む
+2. `sys.meta_path`にあるFinderに対して`find_spec`を呼び出し、specを取得する
+3. specに付属したLoaderを元に`create_module`により、moduleを生成した後に`exec_module`を実行し、moduleを読み込む
 
-
-Importer = Finder + Loader
-importerはモジュールがロードできることがわかると自分自身を返す。
-ファインダーはモジュールのインポート関連の情報をカプセル化したもの(module spec)を返します
-インポートフック(メタフック`sys.meta_path`、インポートパスフック`sys.path_hook`)
-デフォルトのFinderは`sys.meta_path`に含まれる3つ
+import機構を書き換えたい場合、FinderとLoaderを作成した上で、`sys.meta_path`に追加(or 上書き)するのが楽。
