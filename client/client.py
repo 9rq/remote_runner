@@ -37,9 +37,9 @@ def find_spec_and_source(fullname=None, path=None, target=None):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('source', help='python file which you want to run remotely')
-    parser.add_argument('target', help='target address')
-    parser.add_argument('port', type=int, help='target port')
+    parser.add_argument('-s', '--source', help='python file which you want to run remotely')
+    parser.add_argument('-t', '--target', help='target address')
+    parser.add_argument('-p', '--port', type=int, help='target port')
     args = parser.parse_args()
     source = args.source
     target_host = args.target
